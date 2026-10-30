@@ -4,7 +4,7 @@ defmodule WardrikResearch.MixProject do
   def project do
     [
       app: :wardrik_research,
-      version: "0.1.0",
+      version: "0.1.0-rc.1",
       elixir: "~> 1.20",
       description:
         "Deep research for agents: a topic split across angles, a subagent researching each at once, and one report from what they found.",
