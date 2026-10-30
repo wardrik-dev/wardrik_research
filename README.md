@@ -1,17 +1,19 @@
 # WardrikResearch
 
-Deep research for agents: a topic is split across angles, a subagent researches each at once, and
-one more brings what they found into one report.
+Deep research for agents. It splits a topic into angles, researches each one in its own subagent at
+the same time, and combines the findings into one report.
 
 ```elixir
 def deps do
   [
-    {:wardrik_research, "~> 0.1"}
+    {:wardrik_research, "~> 0.1.0-rc.1"}
   ]
 end
 ```
 
-Give an agent the capability beside a search tool, and it calls it as `deep_research`:
+## Usage
+
+Give an agent `WardrikResearch` next to a search tool. The agent calls it as `deep_research`:
 
 ```elixir
 WardrikCore.start_agent(
@@ -21,15 +23,8 @@ WardrikCore.start_agent(
 )
 ```
 
-Each researcher runs as a subagent of the agent that called it, through `WardrikCore.subagent/3`:
-on its model, middleware and tools, but `deep_research`, so research reaches what the agent can and
-a researcher can't start a sweep of its own. Without a search tool, research is limited to what the
-model knows. What the researchers spend counts as the call's, so the agent's budgets hold them, and
-what they read labels its answer, as reading it would. A call that would wait on a person ends that
-researcher's angle instead.
-
-In a [Wardrik](https://hexdocs.pm/wardrik), offer it by name, and a definition names it in its
-`tools`:
+In [Wardrik](https://hexdocs.pm/wardrik), offer it by name. A definition then lists that name in
+its `tools`:
 
 ```elixir
 config :my_app, MyApp.Wardrik,
@@ -38,22 +33,50 @@ config :my_app, MyApp.Wardrik,
 
 The daemon offers it as `deep_research`.
 
-Choose the angles for your deployment, each with what sets it apart, added to the researcher's
-instructions:
+## Options
 
 ```elixir
 {WardrikResearch,
  angles: [
    %{angle: "pricing and packaging", prompt: "Think like a pricing analyst."},
    %{angle: "recent developments"}
- ]}
+ ],
+ max_concurrency: 3}
 ```
 
-A caller may name its own angles for one topic. It also takes `:max_concurrency`, how many run at
-once, 5 unless set, `:timeout`, how long one may take, 8 minutes unless set, and `:max_rounds`, the
-model calls each may make, 12 unless set.
+  * `:angles` - the angles a topic is split into, each `%{angle: name}` with an optional `:prompt`
+    added to that researcher's instructions. Five general angles unless set.
+  * `:max_concurrency` - how many researchers run at once. `5` unless set.
+  * `:timeout` - how long one researcher may take, in milliseconds. 8 minutes unless set.
+  * `:max_rounds` - how many model calls one researcher may make. `12` unless set.
 
-The tool answers the `topic`, the `report`, and the `gaps`: each angle that failed or ran out of
-time, and why. The rest are still brought together. Only a sweep where every angle failed is an
-error. Each researcher appears in the agent's events as `wardrik.subagent.started`, then
+The agent may also pass its own `angles` for a single call.
+
+## How it runs
+
+Each researcher is a subagent of the calling agent, made with `WardrikCore.subagent/3`:
+
+  * It runs on the agent's model, middleware and tools, except `deep_research`. A researcher can't
+    start research of its own.
+  * Without a search tool, it only knows what the model knows.
+  * What it spends counts toward the agent's budgets.
+  * What it reads labels the answer, as if the agent had read it.
+  * A call that would wait for a person ends that researcher's angle.
+
+## Result
+
+The tool returns a map:
+
+```elixir
+%{
+  "topic" => "AI code review tools",
+  "report" => "...",
+  "gaps" => [%{"angle" => "where this appears to be heading", "reason" => "it ran out of time"}]
+}
+```
+
+A failed or timed-out angle is listed in `"gaps"`, and the rest are still combined. The call is an
+error only when every angle fails.
+
+Each researcher shows up in the agent's events as `wardrik.subagent.started`, then
 `wardrik.subagent.completed` or `wardrik.subagent.failed`.

@@ -1,7 +1,9 @@
 defmodule WardrikResearch do
   @moduledoc """
-  Deep research for agents: a topic is split across angles, a subagent researches each at once,
-  and one more brings what they found into one report. The agent calls it as `deep_research`:
+  Deep research for agents, as the `deep_research` tool.
+
+  It splits a topic into angles, researches each one in its own subagent at the same time, and
+  combines the findings into one report.
 
       WardrikCore.start_agent(
         agent_id: "acme/analyst",
@@ -9,18 +11,22 @@ defmodule WardrikResearch do
         capabilities: [{WardrikBrave, brave: MyApp.Brave}, WardrikResearch]
       )
 
-  Its researchers run as subagents of the agent that called it, on its model, middleware and tools
-  but this one, so what research can reach is what the agent can, and a researcher can't start a
-  sweep of its own. Give the agent a search tool, or research is limited to what the model knows.
-  What they spend counts as the call's, and what they read labels its answer, as reading it would.
+  Each researcher runs on the agent's model, middleware and tools, except `deep_research`. Give
+  the agent a search tool, or research only knows what the model knows. What researchers spend
+  counts toward the agent's budgets, and what they read labels the answer.
 
-  It takes `:angles`, the deployment's own, each `%{angle: name}` and, if you like, the `:prompt`
-  that sets it apart, added to the researcher's; `:max_concurrency`, how many run at once, 5 unless
-  set; `:timeout`, how long one may take, 8 minutes unless set; and `:max_rounds`, the model calls
-  each may make, 12 unless set. A caller may name its own angles, plainly, for one topic.
+  ## Options
 
-  An angle that fails or runs out of time is a gap, and the rest are still brought together. Only a
-  sweep where every angle failed is an error.
+      {WardrikResearch, angles: [%{angle: "pricing", prompt: "Think like a pricing analyst."}]}
+
+    * `:angles` - the angles a topic is split into, each `%{angle: name}` with an optional
+      `:prompt` added to that researcher's instructions. Five general angles unless set.
+    * `:max_concurrency` - how many researchers run at once. `5` unless set.
+    * `:timeout` - how long one researcher may take, in milliseconds. 8 minutes unless set.
+    * `:max_rounds` - how many model calls one researcher may make. `12` unless set.
+
+  The agent may pass its own angles for a single call. A failed or timed-out angle is reported as
+  a gap, and the rest are still combined. The call is an error only when every angle fails.
   """
 
   @behaviour WardrikCore.Capability
