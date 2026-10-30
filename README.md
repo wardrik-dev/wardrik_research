@@ -27,7 +27,7 @@ In [Wardrik](https://hexdocs.pm/wardrik), offer it by name. A definition then li
 its `tools`:
 
 ```elixir
-config :my_app, MyApp.Wardrik,
+config :my_app, MyApp.AgentRuntime,
   capabilities: [web_search: {WardrikBrave, brave: MyApp.Brave}, deep_research: WardrikResearch]
 ```
 
